@@ -7,7 +7,7 @@ import time
 import uvicorn
 import logging
 import sys
-# OpenTelemetry Imports
+
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -18,18 +18,18 @@ from redis_deduplication.redis_client import RedisDeduplication
 
 deduplication = RedisDeduplication()
 
-# Initialize FastAPI
+
 app = FastAPI()
 
-# Kafka Configuration
+
 KAFKA_BROKER = "localhost:9093"
 TOPIC_NAME = "audit_data"
 
-# Logging Configuration
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# OpenTelemetry Tracing Setup
+
 tracer_provider = TracerProvider()
 set_tracer_provider(tracer_provider)
 
@@ -38,7 +38,7 @@ tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
 
 tracer = tracer_provider.get_tracer("audit_data_collector")
 
-# Function to check Kafka availability before connecting
+
 def wait_for_kafka():
     for _ in range(10):  
         try:
@@ -47,12 +47,12 @@ def wait_for_kafka():
             admin_client.close()
             return True
         except KafkaError:
-            logger.warning("⚠️ Kafka not ready, retrying in 5 seconds...")
+            logger.warning("Kafka not ready, retrying in 5 seconds...")
             time.sleep(5)
-    logger.error("❌ Kafka connection failed.")
+    logger.error("Kafka connection failed.")
     return False
 
-# Wait for Kafka before starting producer
+
 if wait_for_kafka():
     producer = KafkaProducer(
         bootstrap_servers=KAFKA_BROKER,
@@ -64,17 +64,17 @@ else:
 
 @app.post("/send")
 async def send_message(data: dict):
-    """API Endpoint to send messages to Kafka with tracing."""
+
     with tracer.start_as_current_span("send_to_kafka"):
         if deduplication.is_duplicate(data):
             return {"error": "Duplicate message detected"}
         try:
             producer.send(TOPIC_NAME, data)
             producer.flush()
-            logger.info(f"📨 Message sent: {data}")
+            logger.info(f"Message sent: {data}")
             return {"message": "Sent successfully", "data": data}
         except KafkaError as e:
-            logger.error(f"❌ Error sending message: {str(e)}")
+            logger.error(f"Error sending message: {str(e)}")
             return {"error": "Failed to send message"}
 
 if __name__ == "__main__":
