@@ -108,8 +108,3 @@ python test_kafka_producer.py
 - **Sashwat Sinha**
 - Feel free to contribute by submitting pull requests!
 
----
-
-## License
-MIT License. See `LICENSE` for details.
-
